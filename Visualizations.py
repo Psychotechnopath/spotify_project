@@ -41,3 +41,5 @@ def data_plotter(internal_feature):
     plt.show()
 
 data_plotter('danceability')
+
+data_plotter('duration_ms')

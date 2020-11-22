@@ -1,6 +1,8 @@
+#%%
 import pandas as pd
 from matplotlib import pyplot as plt
 import numpy as np
+
 
 df = pd.read_csv("full_top_2000_audio_features.csv", header=0, index_col=[0])
 
@@ -19,12 +21,15 @@ def data_dict_generator():
                                 'instrumentalness':sub_df['instrumentalness'].mean(),
                                 'loudness':sub_df['loudness'].mean(),
                                 'speechiness':sub_df['speechiness'].mean(),
-                                'valence':sub_df['valence'].mean() }
+                                'valence':sub_df['valence'].mean(),
+                                'tempo':sub_df['tempo'].mean(),
+                                'liveliness':sub_df['liveliness'].mean()}
     #Nested dict
     return data_dict
 
 average_data = data_dict_generator()
 
+#%%
 
 def data_plotter(internal_feature):
     year_range = np.arange(1999, 2019, dtype=np.int)
@@ -39,5 +44,6 @@ def data_plotter(internal_feature):
     plt.xscale("linear")
     plt.xticks(np.arange(1999, 2019, step=2))
     plt.show()
+
 
 data_plotter('danceability')

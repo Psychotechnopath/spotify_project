@@ -113,10 +113,11 @@ top_2000_correct_uri = top_2000_correct_uri.astype({"title": str, "artist":str, 
 
 
 #%%
+import json
 def get_audio_features(top2000_df):
-    aucousticness_list, danceability_list, duration_list, \
+    accousticness_list, danceability_list, duration_list, \
     energy_list, instrumentalness_list, loudness_list, \
-    speechiness_list, valence_list = [], [] ,[], [], [] ,[], [], []
+    speechiness_list, valence_list, tempo_list, liveness_list  = [], [] ,[], [], [] ,[], [], [], [], []
     uri_list = list(top2000_df['track_uri'])
 
     for uri in uri_list:
@@ -124,7 +125,7 @@ def get_audio_features(top2000_df):
             audio_feature_request = requests.get(BASE_URL + 'audio-features/' + uri, headers=headers)
             print("Sending request " + BASE_URL + 'audio-features/'  + uri + " to API server")
             response_json = audio_feature_request.json()
-            aucousticness_list.append(response_json['acousticness'])
+            accousticness_list.append(response_json['acousticness'])
             danceability_list.append(response_json['danceability'])
             duration_list.append(response_json['duration_ms'])
             energy_list.append(response_json['energy'])
@@ -132,8 +133,10 @@ def get_audio_features(top2000_df):
             loudness_list.append(response_json['loudness'])
             speechiness_list.append(response_json['speechiness'])
             valence_list.append(response_json['valence'])
-        except KeyError:
-            aucousticness_list.append(0)
+            tempo_list.append(response_json['tempo'])
+            liveness_list.append(response_json['liveness'])
+        except:
+            accousticness_list.append(0)
             danceability_list.append(0)
             duration_list.append(0)
             energy_list.append(0)
@@ -141,8 +144,11 @@ def get_audio_features(top2000_df):
             loudness_list.append(0)
             speechiness_list.append(0)
             valence_list.append(0)
+            tempo_list.append(0)
+            liveness_list.append(0)
             continue
-    top2000_df['acousticness'] = aucousticness_list
+
+    top2000_df['acousticness'] = accousticness_list
     top2000_df['danceability'] = danceability_list
     top2000_df['duration_ms'] = duration_list
     top2000_df['energy'] = energy_list
@@ -150,6 +156,8 @@ def get_audio_features(top2000_df):
     top2000_df['loudness'] = loudness_list
     top2000_df['speechiness'] = speechiness_list
     top2000_df['valence'] = valence_list
+    top2000_df['tempo'] = tempo_list
+    top2000_df['liveness'] = liveness_list
     return top2000_df
 
 

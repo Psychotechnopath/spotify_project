@@ -113,7 +113,6 @@ top_2000_correct_uri = top_2000_correct_uri.astype({"title": str, "artist":str, 
 
 
 #%%
-import json
 def get_audio_features(top2000_df):
     accousticness_list, danceability_list, duration_list, \
     energy_list, instrumentalness_list, loudness_list, \
@@ -160,6 +159,53 @@ def get_audio_features(top2000_df):
     top2000_df['liveness'] = liveness_list
     return top2000_df
 
-
 final_df_audio_features = get_audio_features(top_2000_correct_uri)
 final_df_audio_features.to_csv('full_top_2000_audio_features.csv', header=True)
+
+
+#%%
+#Hit track complete API endpoint, obtain artist ID. https://developer.spotify.com/console/get-track/
+#Hit API again at Artist Endpoint, collect genre data https://developer.spotify.com/console/get-artist/
+#Store in some kind of Genre list
+
+
+df_audio_features_loaded = pd.read_csv('full_top_2000_audio_features.csv')
+
+# uri = '6PAt558ZEZl0DmdXlnjMgD'
+# artist_request = requests.get(BASE_URL + 'artists/'+ uri, headers=headers)
+# rep_json = artist_request.json()
+#
+# genre = rep_json['genres']
+
+
+def get_genre_data(top_2000_df):
+    uri_list = list(top_2000_df['track_uri'])
+    artist_uri_list = []
+    genre_data_list = []
+    for uri in uri_list:
+        try:
+            complete_track_request = requests.get(BASE_URL + 'tracks/' + uri, headers=headers)
+            print("Sending request " + BASE_URL + 'tracks/'  + uri + " to API server")
+            response_json = complete_track_request.json()
+            artist_uri = response_json['album']['artists'][0]['uri'].replace("spotify:artist:", "")
+            artist_uri_list.append(artist_uri)
+        except KeyError:
+            artist_uri_list.append(0)
+    artist_list_string = [str(i) for i in artist_uri_list]
+    for artist_uri in artist_list_string:
+        try:
+            complete_artist_request = requests.get(BASE_URL + 'artists/'+ artist_uri,  headers=headers)
+            print("Sending request " + BASE_URL + 'artists/'  + artist_uri + " to API server")
+            artist_response_json = complete_artist_request.json()
+            genre = artist_response_json['genres']
+            genre_data_list.append(genre)
+        except KeyError:
+            genre_data_list.append(0)
+    top_2000_df['song_genre'] = genre_data_list
+    return top_2000_df
+
+#%%
+top2000_genre_too = get_genre_data(df_audio_features_loaded)
+#%%
+top2000_genre_too.to_csv('top2000_genre_too.csv', header=True)
+

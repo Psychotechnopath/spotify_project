@@ -167,12 +167,12 @@ def get_audio_features(top2000_df):
     return top2000_df
 
 #Write the dataframe to CSV
-final_df_audio_features = get_audio_features(top_2000_correct_uri)
-final_df_audio_features.to_csv('full_top_2000_audio_features.csv', header=True)
+# final_df_audio_features = get_audio_features(top_2000_correct_uri)
+# final_df_audio_features.to_csv('full_top_2000_audio_features.csv', header=True)
 
 
 #Load in again (Checkpoint)
-df_audio_features_loaded = pd.read_csv('Dataframes_Pickles/full_top_2000_audio_features.csv')
+# df_audio_features_loaded = pd.read_csv('Dataframes_Pickles/full_top_2000_audio_features.csv')
 
 #Function to get artist URI
 def get_artist_uri(top_2000_df):
@@ -221,30 +221,15 @@ def get_genre_data(artist_uri_list_param):
             genre_data_list.append(0)
     return genre_data_list
 
-genre_data_list = get_genre_data(artist_uri_list_pkl)
+# genre_data_list = get_genre_data(artist_uri_list_pkl)
 
 #Sometimes empty list because of no genre, sometimes 0 because of keyerror
-for index, sublist in enumerate(genre_data_list):
-    if not sublist:
-        genre_data_list[index] = 0
+# for index, sublist in enumerate(genre_data_list):
+#     if not sublist:
+#         genre_data_list[index] = 0
+#
+# #Pickle the object for later use, checkpoint
+# with open('Dataframes_Pickles/genre_data_list.pkl', 'wb') as f3:
+#     pickle.dump(genre_data_list, f3)
 
-#Pickle the object for later use, checkpoint
-with open('Dataframes_Pickles/genre_data_list.pkl', 'wb') as f3:
-    pickle.dump(genre_data_list, f3)
 
-
-#%%
-#Load in again (Checkpoint)
-df_audio_features_loaded = pd.read_csv('Dataframes_Pickles/full_top_2000_audio_features.csv')
-
-with open('Dataframes_Pickles/genre_data_list.pkl', 'rb') as f4:
-    hoi = pickle.load(f4)
-
-flat_list = []
-for sublist in hoi:
-    if sublist != 0:
-        for item in sublist:
-            flat_list.append(item)
-
-from collections import Counter
-test = Counter(flat_list)

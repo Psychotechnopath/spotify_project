@@ -1,5 +1,8 @@
 import requests
 import pandas as pd
+import time
+import pickle
+
 
 CLIENT_ID = "6a4beafca96b44fb8d15c07a64b1ab3c"
 CLIENT_SECRET = "bb451993cd9c4d44aed64f7cc901d0bb"
@@ -99,7 +102,7 @@ def get_song_uri(total_df_param):
 # total_top_2000_uri.to_csv('total_top_2000_uri.csv', header=True)
 
 #Some manual work was done on this spreadsheet, to obtain URI's that were not found by search query. DO NOT OVERWRITE CSV FILE!
-top_2000_correct_uri = pd.read_csv('total_top_2000_uri.csv', header=0, index_col=[0])
+top_2000_correct_uri = pd.read_csv('Dataframes_Pickles/total_top_2000_uri.csv', header=0, index_col=[0])
 
 #Sort on index, fill nan values
 top_2000_correct_uri.sort_index(inplace=True)
@@ -112,8 +115,9 @@ top_2000_correct_uri = top_2000_correct_uri.astype({"title": str, "artist":str, 
                                   "pos2014":int, "pos2015":int, "pos2016":int, "pos2017":int, "pos2018":int})
 
 
-#%%
+#Function for getting audio features
 def get_audio_features(top2000_df):
+    #Initialize empty lists to store audio features
     accousticness_list, danceability_list, duration_list, \
     energy_list, instrumentalness_list, loudness_list, \
     speechiness_list, valence_list, tempo_list, liveness_list  = [], [] ,[], [], [] ,[], [], [], [], []
@@ -121,6 +125,7 @@ def get_audio_features(top2000_df):
 
     for uri in uri_list:
         try:
+            #Hit API for audio features, append the response to the proper list
             audio_feature_request = requests.get(BASE_URL + 'audio-features/' + uri, headers=headers)
             print("Sending request " + BASE_URL + 'audio-features/'  + uri + " to API server")
             response_json = audio_feature_request.json()
@@ -134,6 +139,8 @@ def get_audio_features(top2000_df):
             valence_list.append(response_json['valence'])
             tempo_list.append(response_json['tempo'])
             liveness_list.append(response_json['liveness'])
+        #Except without catch because sometimes there would be a JsonDecodeError and sometimes a KeyError.
+        #Non pythonic but it does work. If error, append 0 to audio-feature list.
         except:
             accousticness_list.append(0)
             danceability_list.append(0)
@@ -146,7 +153,7 @@ def get_audio_features(top2000_df):
             tempo_list.append(0)
             liveness_list.append(0)
             continue
-
+    #Set the lists as columns in the dataframe
     top2000_df['acousticness'] = accousticness_list
     top2000_df['danceability'] = danceability_list
     top2000_df['duration_ms'] = duration_list
@@ -159,53 +166,85 @@ def get_audio_features(top2000_df):
     top2000_df['liveness'] = liveness_list
     return top2000_df
 
+#Write the dataframe to CSV
 final_df_audio_features = get_audio_features(top_2000_correct_uri)
 final_df_audio_features.to_csv('full_top_2000_audio_features.csv', header=True)
 
 
-#%%
-#Hit track complete API endpoint, obtain artist ID. https://developer.spotify.com/console/get-track/
-#Hit API again at Artist Endpoint, collect genre data https://developer.spotify.com/console/get-artist/
-#Store in some kind of Genre list
+#Load in again (Checkpoint)
+df_audio_features_loaded = pd.read_csv('Dataframes_Pickles/full_top_2000_audio_features.csv')
 
-
-df_audio_features_loaded = pd.read_csv('full_top_2000_audio_features.csv')
-
-# uri = '6PAt558ZEZl0DmdXlnjMgD'
-# artist_request = requests.get(BASE_URL + 'artists/'+ uri, headers=headers)
-# rep_json = artist_request.json()
-#
-# genre = rep_json['genres']
-
-
-def get_genre_data(top_2000_df):
+#Function to get artist URI
+def get_artist_uri(top_2000_df):
+    #Load all song uri's
     uri_list = list(top_2000_df['track_uri'])
+    #Initialize empty artist_uri list
     artist_uri_list = []
-    genre_data_list = []
     for uri in uri_list:
+        #Hit API to obtain artist URI.
         try:
             complete_track_request = requests.get(BASE_URL + 'tracks/' + uri, headers=headers)
             print("Sending request " + BASE_URL + 'tracks/'  + uri + " to API server")
+            print(complete_track_request)
             response_json = complete_track_request.json()
             artist_uri = response_json['album']['artists'][0]['uri'].replace("spotify:artist:", "")
             artist_uri_list.append(artist_uri)
+            time.sleep(0.2)
+        #Except empty response
         except KeyError:
+            print("Key Error")
             artist_uri_list.append(0)
-    artist_list_string = [str(i) for i in artist_uri_list]
+    return artist_uri_list
+
+# artist_uri_list = get_artist_uri(df_audio_features_loaded)
+# with open('artist_uri_list.pkl', 'wb') as f:
+#     pickle.dump(artist_uri_list, f)
+
+with open('Dataframes_Pickles/artist_uri_list.pkl', 'rb') as f2:
+    artist_uri_list_pkl = pickle.load(f2)
+
+#Function to obtain genre data
+def get_genre_data(artist_uri_list_param):
+    artist_list_string = [str(i) for i in artist_uri_list_param]
+    genre_data_list = []
     for artist_uri in artist_list_string:
         try:
             complete_artist_request = requests.get(BASE_URL + 'artists/'+ artist_uri,  headers=headers)
             print("Sending request " + BASE_URL + 'artists/'  + artist_uri + " to API server")
+            print(complete_artist_request)
             artist_response_json = complete_artist_request.json()
             genre = artist_response_json['genres']
+            print(type(genre))
             genre_data_list.append(genre)
+            time.sleep(0.1)
         except KeyError:
             genre_data_list.append(0)
-    top_2000_df['song_genre'] = genre_data_list
-    return top_2000_df
+    return genre_data_list
+
+genre_data_list = get_genre_data(artist_uri_list_pkl)
+
+#Sometimes empty list because of no genre, sometimes 0 because of keyerror
+for index, sublist in enumerate(genre_data_list):
+    if not sublist:
+        genre_data_list[index] = 0
+
+#Pickle the object for later use, checkpoint
+with open('Dataframes_Pickles/genre_data_list.pkl', 'wb') as f3:
+    pickle.dump(genre_data_list, f3)
+
 
 #%%
-top2000_genre_too = get_genre_data(df_audio_features_loaded)
-#%%
-top2000_genre_too.to_csv('top2000_genre_too.csv', header=True)
+#Load in again (Checkpoint)
+df_audio_features_loaded = pd.read_csv('Dataframes_Pickles/full_top_2000_audio_features.csv')
 
+with open('Dataframes_Pickles/genre_data_list.pkl', 'rb') as f4:
+    hoi = pickle.load(f4)
+
+flat_list = []
+for sublist in hoi:
+    if sublist != 0:
+        for item in sublist:
+            flat_list.append(item)
+
+from collections import Counter
+test = Counter(flat_list)

@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 
-df = pd.read_csv("full_top_2000_audio_features.csv", header=0, index_col=[0])
+df = pd.read_csv("Dataframes_Pickles/full_top_2000_audio_features.csv", header=0, index_col=[0])
 
 
 def data_dict_generator():
@@ -26,11 +26,9 @@ def data_dict_generator():
                                 'liveliness':sub_df['liveliness'].mean()}
     #Nested dict
     return data_dict
-
 average_data = data_dict_generator()
 
 #%%
-
 def data_plotter(internal_feature):
     year_range = np.arange(1999, 2019, dtype=np.int)
     acousticness_list = []

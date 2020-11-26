@@ -27,8 +27,8 @@ headers = {
     'Authorization': 'Bearer {token}'.format(token=access_token)
 }
 
-#%%
 def top2000_merger():
+    """Function that takes all the excel lists in the top2000_excel folder, and merges them into one big dataframe"""
     #Initalize empty dataframe
     total_df = pd.DataFrame(columns = {'title', 'artist', 'title_artist', 'year', "pos1999", "pos2000", "pos2001",
                                   "pos2002", "pos2003", "pos2004", "pos2005", "pos2006", "pos2007",
@@ -62,6 +62,9 @@ def top2000_merger():
 
 
 def get_song_uri(total_df_param):
+    """Function that hits the spotify API to obtain all the song URI's.
+    Take care in re-running this, as some URI's were entered into the resulting CSV of this function,
+    as the search endpoint does not work flawlessly."""
     #Initialize empty uri_list to store all the URI's
     uri_list = []
     empty_responses = []
@@ -115,8 +118,9 @@ top_2000_correct_uri = top_2000_correct_uri.astype({"title": str, "artist":str, 
                                   "pos2014":int, "pos2015":int, "pos2016":int, "pos2017":int, "pos2018":int})
 
 
-#Function for getting audio features
+
 def get_audio_features(top2000_df):
+    """Function for obtaining internal track features of the songs"""
     #Initialize empty lists to store audio features
     accousticness_list, danceability_list, duration_list, \
     energy_list, instrumentalness_list, loudness_list, \
@@ -174,8 +178,9 @@ def get_audio_features(top2000_df):
 #Load in again (Checkpoint)
 # df_audio_features_loaded = pd.read_csv('Dataframes_Pickles/full_top_2000_audio_features.csv')
 
-#Function to get artist URI
+
 def get_artist_uri(top_2000_df):
+    """Function to get the Artist URI from the Spotify API"""
     #Load all song uri's
     uri_list = list(top_2000_df['track_uri'])
     #Initialize empty artist_uri list
@@ -196,6 +201,7 @@ def get_artist_uri(top_2000_df):
             artist_uri_list.append(0)
     return artist_uri_list
 
+#CHECKPOINT
 # artist_uri_list = get_artist_uri(df_audio_features_loaded)
 # with open('artist_uri_list.pkl', 'wb') as f:
 #     pickle.dump(artist_uri_list, f)
@@ -203,8 +209,9 @@ def get_artist_uri(top_2000_df):
 with open('Dataframes_Pickles/artist_uri_list.pkl', 'rb') as f2:
     artist_uri_list_pkl = pickle.load(f2)
 
-#Function to obtain genre data
+
 def get_genre_data(artist_uri_list_param):
+    """Function to obtain genre data"""
     artist_list_string = [str(i) for i in artist_uri_list_param]
     genre_data_list = []
     for artist_uri in artist_list_string:

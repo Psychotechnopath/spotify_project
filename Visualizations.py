@@ -29,26 +29,123 @@ def data_dict_generator():
 average_data = data_dict_generator()
 
 
-#Function for plotting average internal track features
+#Function for plotting maximum track feature change over the years
 def data_plotter(internal_feature):
     year_range = np.arange(1999, 2019, dtype=np.int)
-    acousticness_list = []
-    for i in range(1999, 2019):
-        acousticness_list.append(average_data[f'pos{i}'][f'{internal_feature}'])
-    plt.plot(year_range, acousticness_list, '-o')
-    plt.title(f'{internal_feature} in top2000 over the years')
-    plt.xscale('linear')
-    plt.xlabel("Year")
-    plt.ylabel(f"{internal_feature}")
-    plt.xscale("linear")
-    plt.xticks(np.arange(1999, 2019, step=2))
-    plt.show()
-# data_plotter('danceability')
+    
+    track_feat_list = []
+    if internal_feature == "duration_ms":
+        for i in range(1999, 2019):
+            track_feat_list.append(average_data[f'pos{i}'][f'{internal_feature}']/60000)
+    else:
+        for i in range(1999, 2019):
+            track_feat_list.append(average_data[f'pos{i}'][f'{internal_feature}'])
+    print("Max change of {}:\t\t{}".format(internal_feature, max(track_feat_list)-min(track_feat_list)))
 
-
+for track_feat in average_data['pos1999']:
+    data_plotter(track_feat)
+    
+    
 with open('Dataframes_Pickles/genre_data_list.pkl', 'rb') as f4:
     genre_list = pickle.load(f4)
 df['genre'] = genre_list
+
+
+# Create a list with everything BUT the track features
+drop_list = []
+for feat in df.columns[:len(df.columns)-10]:
+    if feat!="year":
+        drop_list.append(feat)
+
+col_feature = df.drop(drop_list, axis=1)
+
+# Create a dict of all the specific features, with their corresponding list of mean values of each year
+def create_feat_dict():
+    track_feat_dict = {}
+    for column in col_feature:
+        track_feat_list = []
+        for i in range(1999, 2019):
+            if column=="duration_ms":
+                track_feat_list.append(average_data[f'pos{i}'][f'{column}']/60000)
+            else: track_feat_list.append(average_data[f'pos{i}'][f'{column}'])
+        track_feat_dict[column]=track_feat_list
+    return track_feat_dict
+
+track_feat_dict = create_feat_dict()
+
+
+# This function creates a colorized gridplot. 
+# Arguments taken: 
+# - y-lim (boolean, if True, then the y-lim is set to 0,1)
+# - ignorelim (list that ignores the y-lim rule)
+# - title (string for the title of the entire gridplot)
+# - col_lis (list of all the different y-axis variables)
+# - plt_layout (tuple, defines the grid size)
+# - datadict (dictionary with the data that needs to be plotted. key=y-axis var label, value=corresponding data as a list)
+def gridplot(ylim=True, ignorelim=[], title="", col_lis=[], plt_layout=(), datadict={}):
+    # Initialize the figure
+    plt.style.use('seaborn-darkgrid')
+    plt.figure(figsize=(15,10))
+
+    # create a color palette
+    palette = plt.get_cmap('tab20')
+
+
+    # Create a np array of the years
+    year_range = np.arange(1999, 2019, dtype=np.int)
+
+    # multiple line plot
+    num=0
+    for column in col_lis:
+        num+=1
+
+        # Find the right spot on the plot
+        plt.subplot(plt_layout[0],plt_layout[1], num)
+
+        # Plot the lineplot
+        plt.plot(year_range, datadict[column], marker='', color=palette(num), linewidth=1.9, alpha=0.9, label=column)
+
+        # Same fixed limits if ylim is set to true
+        if ylim and column not in ignorelim and column != 'tempo':
+            plt.ylim(0,1)
+            
+        # Not ticks everywhere
+        if num in range(7) : plt.tick_params(labelbottom='off')
+        if num not in [1,4,7] : plt.tick_params(labelleft='off')
+
+        # Add title
+        if column == 'duration_ms': plt.title(f'Duration in minutes', loc='left', fontsize=12, fontweight=0, color=palette(num))
+        elif column == 'year': plt.title(f"Average song release year", loc='left', fontsize=12, fontweight=0, color=palette(num))
+        elif column == 'loudness': plt.title(f"Loudness in db", loc='left', fontsize=12, fontweight=0, color=palette(num))
+        elif column == 'tempo': plt.title(f"Tempo in bpm", loc='left', fontsize=12, fontweight=0, color=palette(num))
+        else: plt.title(f'{column}', loc='left', fontsize=12, fontweight=0, color=palette(num))
+
+    # general title
+    plt.suptitle(title, fontsize=13, fontweight=0, color='black', style='italic', y=0.95)
+
+    # Axis title
+    # plt.text(0.5, 0.04, 'Year', ha='center', va='center')
+    # plt.text(0.06, 0.5, 'Feature value', ha='center', va='center', rotation='vertical')
+    plt.savefig(f'Plots/{title}.png', bbox_inches='tight')
+    plt.show()
+    
+title1 ="Average track feature change over the past 20 years, with fixed y-axis"
+title2 = "Average track feature change over the past 20 years, zoomed in"
+ignorelim = ['year', 'duration_ms', 'loudness']
+
+# FIGURE... in the report. It shows the average feature change over the years
+gridplot(title=title1, ignorelim=ignorelim, col_lis=col_feature, datadict=track_feat_dict, plt_layout=(3,4))
+gridplot(ylim=False, title=title2, ignorelim=ignorelim, col_lis=col_feature, datadict=track_feat_dict, plt_layout=(3,4))
+
+
+# Transform dict to dataframe for easy csv export for STATA
+average_data = pd.DataFrame(average_data)
+
+# Transpose columns and rows and export to csv
+average_data = average_data.transpose()
+average_data.to_csv('STATA Stuff/stata_data.csv')
+
+
 
 
 #This function returns a counter object for each year in the top2000
@@ -135,30 +232,19 @@ ttal_rock_occurence, ttal_jazz_occurence, \
 ttal_hiphop_occurence, ttal_pop_occurence, ttal_dance_occurence, \
 ttal_beatlesque_occurence, ttal_mellow_gold_occurence  = genre_per_year_counter(genre_dictionary)
 
-#Function to plot results
-def tuple_plotter(genre_occurence_list, label, title, color, ylabel='Nr of occurences', xlabel='Year'):
-    # Results are added to list in this order in previous for-loop
-    # Make the actual plot
-    plt.figure()
-    plt.plot(*zip(*genre_occurence_list), '-o', label=label, color=color)
-    plt.title(title)
-    plt.ylabel(ylabel)
-    plt.xlabel(xlabel)
-    plt.xscale("linear")
-    plt.xticks(np.arange(1999, 2019, step=2))
-    plt.legend()
-    plt.show()
 
-#Calling the function
-tuple_plotter(ttal_rock_occurence, 'Rock Genre', 'Representation of Rock genre in Top2000 over the years', 'red')
-tuple_plotter(ttal_jazz_occurence, 'Jazz Genre', 'Representation of Jazz genre in Top2000 over the years', 'purple')
-tuple_plotter(ttal_hiphop_occurence, 'HipHop Genre', 'Representation of HipHop genre in Top2000 over the years', 'pink')
-tuple_plotter(ttal_pop_occurence, 'Pop Genre', 'Representation of Pop genre in Top2000 over the years', 'blue')
-tuple_plotter(ttal_dance_occurence, 'Dance Genre', 'Representation of Dance genre in Top2000 over the years', 'green')
-tuple_plotter(ttal_beatlesque_occurence, 'Beatlesque Genre', 'Representation of Beatlesque genre in Top2000 over the years', 'orange')
-tuple_plotter(ttal_mellow_gold_occurence, 'Mellow Gold Genre', 'Representation of Mellow Gold genre in Top2000 over the years', 'gold')
+col_genres = ['Rock Genre','Jazz Genre', 'HipHop Genre','Pop Genre','Dance Genre','Beatlesque Genre','Mellow Gold Genre']
 
+genre_plot_dict = {}
+genre_plot_dict ['Rock Genre'] = ttal_rock_occurence
+genre_plot_dict ['Jazz Genre'] = ttal_jazz_occurence
+genre_plot_dict ['HipHop Genre'] = ttal_hiphop_occurence
+genre_plot_dict ['Pop Genre'] = ttal_pop_occurence
+genre_plot_dict ['Dance Genre'] = ttal_dance_occurence
+genre_plot_dict ['Beatlesque Genre'] = ttal_beatlesque_occurence
+genre_plot_dict ['Mellow Gold Genre'] = ttal_mellow_gold_occurence
 
+title3= 'Representation of specific genres in Top2000 over the years'
 
-
-
+# TABLE ... in the report.
+gridplot(ylim=False, title=title3, ignorelim=ignorelim, col_lis=col_genres, datadict=genre_plot_dict, plt_layout=(3,3))

@@ -4,8 +4,12 @@ import time
 import pickle
 
 
-CLIENT_ID = "6a4beafca96b44fb8d15c07a64b1ab3c"
-CLIENT_SECRET = "bb451993cd9c4d44aed64f7cc901d0bb"
+from os.path import join, dirname
+from dotenv import load_dotenv
+
+dotenv_path = join(dirname(__file__), '.env')
+CLIENT_ID, CLIENT_SECRET = load_dotenv(dotenv_path)
+
 # base URL of all Spotify API endpoints
 BASE_URL = 'https://api.spotify.com/v1/'
 
